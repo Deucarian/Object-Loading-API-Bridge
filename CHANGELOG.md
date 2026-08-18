@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.7 - 2026-08-18
+
+- Added explicit API-provider authentication overloads for byte downloads,
+  AssetBundle content loading, request mapping, and pipeline composition.
+- Kept legacy overloads unauthenticated by default while allowing the API
+  client to resolve a current provider token at send time without copying it
+  into Object Loading requests or debug snapshots.
+- Kept explicit bearer tokens authoritative and documented the caller-owned
+  origin validation required before enabling provider authentication.
+
 ## 0.2.6 - 2026-07-17
 
 - Kept the imported API loader sample within its declared dependency boundary by exposing status text without a direct Logging assembly reference.

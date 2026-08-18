@@ -11,15 +11,28 @@ namespace Deucarian.ObjectLoading.APIIntegration
     public sealed class ApiObjectDownloader : IObjectDownloader
     {
         private readonly IApiClient _apiClient;
+        private readonly ApiAuthenticationRequirement _providerAuthentication;
 
         public ApiObjectDownloader()
-            : this(ApiClientFactory.CreateDefault())
+            : this(
+                ApiClientFactory.CreateDefault(),
+                ApiAuthenticationRequirement.Disabled)
         {
         }
 
         public ApiObjectDownloader(IApiClient apiClient)
+            : this(
+                apiClient,
+                ApiAuthenticationRequirement.Disabled)
+        {
+        }
+
+        public ApiObjectDownloader(
+            IApiClient apiClient,
+            ApiAuthenticationRequirement providerAuthentication)
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+            _providerAuthentication = providerAuthentication;
         }
 
         public IEnumerator DownloadAsync(ObjectSource source,
@@ -33,7 +46,10 @@ namespace Deucarian.ObjectLoading.APIIntegration
                 yield break;
             }
 
-            ApiRequest apiRequest = ApiObjectDownloadMapper.CreateApiRequest(source, request);
+            ApiRequest apiRequest = ApiObjectDownloadMapper.CreateApiRequest(
+                source,
+                request,
+                _providerAuthentication);
             Task<ApiResult<byte[]>> task = _apiClient.SendAsync<byte[]>(
                 apiRequest,
                 request != null ? request.CancellationToken : default);

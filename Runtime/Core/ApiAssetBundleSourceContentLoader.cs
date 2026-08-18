@@ -16,17 +16,43 @@ namespace Deucarian.ObjectLoading.APIIntegration
 
         private readonly IApiClient _apiClient;
         private readonly IObjectSourceContentLoader _fallbackContentLoader;
+        private readonly ApiAuthenticationRequirement _providerAuthentication;
 
         public ApiAssetBundleSourceContentLoader(IApiClient apiClient)
-            : this(apiClient, new SourceAssetBundleContentLoader())
+            : this(
+                apiClient,
+                new SourceAssetBundleContentLoader(),
+                ApiAuthenticationRequirement.Disabled)
+        {
+        }
+
+        public ApiAssetBundleSourceContentLoader(
+            IApiClient apiClient,
+            ApiAuthenticationRequirement providerAuthentication)
+            : this(
+                apiClient,
+                new SourceAssetBundleContentLoader(),
+                providerAuthentication)
         {
         }
 
         public ApiAssetBundleSourceContentLoader(IApiClient apiClient,
                                                  IObjectSourceContentLoader fallbackContentLoader)
+            : this(
+                apiClient,
+                fallbackContentLoader,
+                ApiAuthenticationRequirement.Disabled)
+        {
+        }
+
+        public ApiAssetBundleSourceContentLoader(
+            IApiClient apiClient,
+            IObjectSourceContentLoader fallbackContentLoader,
+            ApiAuthenticationRequirement providerAuthentication)
         {
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
             _fallbackContentLoader = fallbackContentLoader ?? new SourceAssetBundleContentLoader();
+            _providerAuthentication = providerAuthentication;
         }
 
         public IEnumerator LoadAsync(ObjectSource source,
@@ -70,7 +96,10 @@ namespace Deucarian.ObjectLoading.APIIntegration
             }
 
             ObjectLoadTelemetry telemetry = CreateTelemetry(request);
-            ApiRequest apiRequest = ApiObjectDownloadMapper.CreateAssetBundleApiRequest(source, request);
+            ApiRequest apiRequest = ApiObjectDownloadMapper.CreateAssetBundleApiRequest(
+                source,
+                request,
+                _providerAuthentication);
             apiRequest.TransferProgress = progress => ReportTransferProgress(request, telemetry, progress);
 
             request?.ReportProgress(ObjectLoadPhase.Downloading, 0f, "Downloading AssetBundle through API.", 0, 0, telemetry);
