@@ -26,6 +26,17 @@ namespace Deucarian.ObjectLoading.APIIntegration
 
         public static ApiRequest CreateApiRequest(ObjectSource source, ObjectLoadRequest request)
         {
+            return CreateApiRequest(
+                source,
+                request,
+                ApiAuthenticationRequirement.Disabled);
+        }
+
+        public static ApiRequest CreateApiRequest(
+            ObjectSource source,
+            ObjectLoadRequest request,
+            ApiAuthenticationRequirement providerAuthentication)
+        {
             ObjectLoadError validation = Validate(source);
             if (validation != null)
             {
@@ -45,9 +56,9 @@ namespace Deucarian.ObjectLoading.APIIntegration
             ApiRequest apiRequest = new ApiRequest(
                 source.Url,
                 HttpMethod.GET,
-                string.IsNullOrWhiteSpace(bearerToken)
-                    ? ApiAuthenticationRequirement.Disabled
-                    : ApiAuthenticationRequirement.Required)
+                ResolveAuthentication(
+                    bearerToken,
+                    providerAuthentication))
             {
                 ResponseFormat = ApiResponseFormat.Bytes,
                 BearerTokenOverride = bearerToken,
@@ -72,6 +83,17 @@ namespace Deucarian.ObjectLoading.APIIntegration
 
         public static ApiRequest CreateAssetBundleApiRequest(ObjectSource source, ObjectLoadRequest request)
         {
+            return CreateAssetBundleApiRequest(
+                source,
+                request,
+                ApiAuthenticationRequirement.Disabled);
+        }
+
+        public static ApiRequest CreateAssetBundleApiRequest(
+            ObjectSource source,
+            ObjectLoadRequest request,
+            ApiAuthenticationRequirement providerAuthentication)
+        {
             ObjectLoadError validation = Validate(source);
             if (validation != null)
             {
@@ -91,9 +113,9 @@ namespace Deucarian.ObjectLoading.APIIntegration
             ApiRequest apiRequest = new ApiRequest(
                 source.Url,
                 HttpMethod.GET,
-                string.IsNullOrWhiteSpace(bearerToken)
-                    ? ApiAuthenticationRequirement.Disabled
-                    : ApiAuthenticationRequirement.Required)
+                ResolveAuthentication(
+                    bearerToken,
+                    providerAuthentication))
             {
                 ResponseFormat = ApiResponseFormat.AssetBundle,
                 AssetBundleOptions = CreateAssetBundleOptions(request),
@@ -228,7 +250,21 @@ namespace Deucarian.ObjectLoading.APIIntegration
 
         public static string CreateDebugSnapshotJson(ObjectSource source, ObjectLoadRequest request)
         {
-            ApiRequest apiRequest = CreateApiRequest(source, request);
+            return CreateDebugSnapshotJson(
+                source,
+                request,
+                ApiAuthenticationRequirement.Disabled);
+        }
+
+        public static string CreateDebugSnapshotJson(
+            ObjectSource source,
+            ObjectLoadRequest request,
+            ApiAuthenticationRequirement providerAuthentication)
+        {
+            ApiRequest apiRequest = CreateApiRequest(
+                source,
+                request,
+                providerAuthentication);
             Dictionary<string, string> redactedHeaders = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, string> header in apiRequest.Headers)
             {
@@ -266,6 +302,15 @@ namespace Deucarian.ObjectLoading.APIIntegration
             }
 
             return ObjectLoadRequest.StripBearerPrefix(authorization);
+        }
+
+        private static ApiAuthenticationRequirement ResolveAuthentication(
+            string bearerToken,
+            ApiAuthenticationRequirement providerAuthentication)
+        {
+            return string.IsNullOrWhiteSpace(bearerToken)
+                ? providerAuthentication
+                : ApiAuthenticationRequirement.Required;
         }
 
         private static ApiAssetBundleCacheMode MapCacheMode(ObjectLoadCacheMode cacheMode)

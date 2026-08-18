@@ -68,6 +68,38 @@ namespace Deucarian.ObjectLoading.APIIntegration.Tests
             Assert.NotNull(latestProgress.Telemetry);
             Assert.AreEqual(ApiAssetBundleSourceContentLoader.LoadStrategy, latestProgress.Telemetry.LoadStrategy);
             Assert.AreEqual(1234, latestProgress.Telemetry.BytesReceived);
+            Assert.AreEqual(
+                ApiAuthenticationRequirement.Disabled,
+                client.LastRequest.Authentication);
+            Assert.IsNull(client.LastRequest.BearerTokenOverride);
+        }
+
+        [Test]
+        public void DirectUrl_ForwardsProviderAuthenticationWithoutTokenOverride()
+        {
+            RecordingApiClient client = new RecordingApiClient
+            {
+                NextAssetBundleResult = ApiResult<AssetBundle>.Failure(
+                    new ApiError { Message = "No bundle" },
+                    Deucarian.API.HttpMethod.GET)
+            };
+            ApiAssetBundleSourceContentLoader loader =
+                new ApiAssetBundleSourceContentLoader(
+                    client,
+                    new RecordingSourceContentLoader(),
+                    ApiAuthenticationRequirement.Required);
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                "https://example.com/object.bundle");
+
+            Run(loader.LoadAsync(
+                ObjectSource.DirectUrl(request.Url),
+                request,
+                _ => { }));
+
+            Assert.AreEqual(
+                ApiAuthenticationRequirement.Required,
+                client.LastRequest.Authentication);
+            Assert.IsNull(client.LastRequest.BearerTokenOverride);
         }
 
         [Test]
@@ -98,6 +130,31 @@ namespace Deucarian.ObjectLoading.APIIntegration.Tests
             Assert.AreEqual("ApiAssetBundleSourceContentLoader", snapshot.ActiveComponents.SourceContentLoader);
             Assert.IsNull(snapshot.ActiveComponents.Downloader);
             Assert.AreEqual("AssetBundleObjectInstantiator", snapshot.ActiveComponents.Instantiator);
+        }
+
+        [Test]
+        public void PipelineFactory_ForwardsProviderAuthenticationWithoutTokenOverride()
+        {
+            RecordingApiClient client = new RecordingApiClient
+            {
+                NextAssetBundleResult = ApiResult<AssetBundle>.Failure(
+                    new ApiError { Message = "No bundle" },
+                    Deucarian.API.HttpMethod.GET)
+            };
+            ObjectLoadingPipeline pipeline =
+                ApiObjectLoadingPipelineFactory.Create(
+                    client,
+                    ApiAuthenticationRequirement.Required);
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                "https://example.com/object.bundle");
+
+            Run(pipeline.LoadAsync(request, _ => { }));
+
+            Assert.NotNull(client.LastRequest);
+            Assert.AreEqual(
+                ApiAuthenticationRequirement.Required,
+                client.LastRequest.Authentication);
+            Assert.IsNull(client.LastRequest.BearerTokenOverride);
         }
 
         private static void Run(IEnumerator enumerator)
