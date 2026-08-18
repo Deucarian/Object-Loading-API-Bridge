@@ -21,7 +21,9 @@ Do not use this package for Session lifecycle, backend object/version resolution
 - Requests `ApiResponseFormat.Bytes`.
 - Maps `ApiResult<byte[]>` back to `ObjectDownloadResult`.
 - Maps API errors to `ObjectLoadError`.
-- Keeps auth token passing explicit through `ObjectLoadRequest.BearerToken`, `Authorization: Bearer ...`, or an explicitly composed API client.
+- Keeps authentication explicit through `ObjectLoadRequest.BearerToken`,
+  `Authorization: Bearer ...`, or provider-authentication overloads used with
+  an explicitly composed API client.
 
 ## What It Does Not Do
 
@@ -44,7 +46,7 @@ Install this integration after installing its dependencies:
 
 The package depends on `com.deucarian.object-loading` `1.2.2`, `com.deucarian.api` `1.1.4`, and Unity's Newtonsoft Json package `3.2.2`.
 
-Current package version: `0.2.6`.
+Current package version: `0.2.7`.
 
 `com.deucarian.object-loading` supplies the runtime loading pipeline this package adapts. `com.deucarian.api` supplies the request, response, authentication, AssetBundle transport, and progress models used by the integration.
 
@@ -72,6 +74,7 @@ Use `#main` for stable package consumption and `#develop` when testing active pa
 ## Usage
 
 ```csharp
+using Deucarian.API.Models;
 using Deucarian.ObjectLoading;
 using Deucarian.ObjectLoading.APIIntegration;
 
@@ -93,11 +96,39 @@ For explicit composition and tests, pass your own API client:
 ApiObjectDownloader downloader = new ApiObjectDownloader(apiClient);
 ```
 
+To let API resolve the current token from that client's `IApiAuthProvider` at
+send time, opt in explicitly:
+
+```csharp
+ObjectLoadingPipeline authenticatedPipeline =
+    ApiObjectLoadingPipelineFactory.Create(
+        apiClient,
+        ApiAuthenticationRequirement.Required);
+```
+
+The same `providerAuthentication` overload is available on
+`ApiObjectDownloader`, `ApiAssetBundleSourceContentLoader`, and the mapper
+methods. Existing overloads continue to use
+`ApiAuthenticationRequirement.Disabled`.
+
 ## Auth And Headers
 
 `ObjectLoadRequest.BearerToken` becomes `ApiRequest.BearerTokenOverride`.
 
 An explicit `Authorization: Bearer ...` header is also parsed into `BearerTokenOverride`. Other headers are forwarded unchanged.
+
+When no explicit bearer token is present, a caller can supply
+`ApiAuthenticationRequirement.Required`, `Optional`, or `UseConfigDefault`
+through the provider-authentication overloads. The resulting `ApiRequest`
+contains no token override; API asks the configured `IApiAuthProvider` for its
+current token when the request is sent. An explicit bearer token always makes
+the request `Required` and takes precedence over the provider-authentication
+argument.
+
+Provider authentication is destination-sensitive. Keep it disabled for
+untrusted or arbitrary absolute URLs. Applications must validate that a source
+is API-relative, same-origin, or explicitly allowlisted before enabling a
+provider token for that load.
 
 `ApiObjectDownloadMapper.CreateDebugSnapshotJson(...)` redacts bearer tokens and sensitive headers.
 
@@ -107,7 +138,9 @@ Import the **API Downloader Sample** from Unity's Package Manager to see `ApiObj
 
 ## Tests
 
-Run the package's EditMode tests in Unity. Tests cover auth/header forwarding, byte-result mapping, error mapping, and debug redaction.
+Run the package's EditMode tests in Unity. Tests cover provider-authentication
+forwarding, legacy disabled defaults, explicit auth/header forwarding,
+byte-result mapping, error mapping, and debug redaction.
 
 ## Validation
 
@@ -126,7 +159,9 @@ git diff --check
 ## Troubleshooting
 
 - Downloads fail before Object Loading receives bytes: inspect the API `ApiResult<byte[]>` error and request headers first.
-- Auth does not apply: set `ObjectLoadRequest.BearerToken`, provide an `Authorization: Bearer ...` header, or inject an API client configured with the expected auth provider.
+- Auth does not apply: set `ObjectLoadRequest.BearerToken`, provide an
+  `Authorization: Bearer ...` header, or use a provider-authentication overload
+  with an API client configured with the expected auth provider.
 - The integration is installed but not used: confirm the `ObjectLoadingPipeline` is composed with `ApiObjectDownloader` instead of the default downloader.
 - Backend lookup is missing: resolve project/object/version URLs in API or application code before creating the `ObjectLoadRequest`.
 

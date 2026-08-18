@@ -1,5 +1,6 @@
 using System;
 using Deucarian.API.Core;
+using Deucarian.API.Models;
 using Deucarian.ObjectLoading;
 
 namespace Deucarian.ObjectLoading.APIIntegration
@@ -10,10 +11,20 @@ namespace Deucarian.ObjectLoading.APIIntegration
         {
             return Create(
                 apiClient,
+                ApiAuthenticationRequirement.Disabled);
+        }
+
+        public static ObjectLoadingPipeline Create(
+            IApiClient apiClient,
+            ApiAuthenticationRequirement providerAuthentication)
+        {
+            return Create(
+                apiClient,
                 new DirectUrlSourceResolver(),
                 new SourceAssetBundleContentLoader(),
                 new AssetBundleObjectInstantiator(),
-                new DefaultObjectDiagnostics());
+                new DefaultObjectDiagnostics(),
+                providerAuthentication);
         }
 
         public static ObjectLoadingPipeline Create(IApiClient apiClient,
@@ -21,6 +32,23 @@ namespace Deucarian.ObjectLoading.APIIntegration
                                                    IObjectSourceContentLoader fallbackContentLoader,
                                                    IObjectInstantiator instantiator,
                                                    IObjectDiagnostics diagnostics)
+        {
+            return Create(
+                apiClient,
+                sourceResolver,
+                fallbackContentLoader,
+                instantiator,
+                diagnostics,
+                ApiAuthenticationRequirement.Disabled);
+        }
+
+        public static ObjectLoadingPipeline Create(
+            IApiClient apiClient,
+            IObjectSourceResolver sourceResolver,
+            IObjectSourceContentLoader fallbackContentLoader,
+            IObjectInstantiator instantiator,
+            IObjectDiagnostics diagnostics,
+            ApiAuthenticationRequirement providerAuthentication)
         {
             if (apiClient == null)
             {
@@ -31,7 +59,8 @@ namespace Deucarian.ObjectLoading.APIIntegration
                 sourceResolver ?? new DirectUrlSourceResolver(),
                 new ApiAssetBundleSourceContentLoader(
                     apiClient,
-                    fallbackContentLoader ?? new SourceAssetBundleContentLoader()),
+                    fallbackContentLoader ?? new SourceAssetBundleContentLoader(),
+                    providerAuthentication),
                 instantiator ?? new AssetBundleObjectInstantiator(),
                 diagnostics ?? new DefaultObjectDiagnostics());
         }

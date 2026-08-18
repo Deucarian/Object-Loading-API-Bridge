@@ -38,6 +38,36 @@ namespace Deucarian.ObjectLoading.APIIntegration.Tests
             Assert.AreEqual(3, result.Bytes.Length);
         }
 
+        [Test]
+        public void DownloadAsync_ForwardsProviderAuthenticationWithoutTokenOverride()
+        {
+            RecordingApiClient client = new RecordingApiClient
+            {
+                NextBytesResult = ApiResult<byte[]>.Success(
+                    new byte[] { 1 },
+                    Deucarian.API.HttpMethod.GET,
+                    200,
+                    "https://example.com/object.bundle",
+                    null)
+            };
+            ApiObjectDownloader downloader = new ApiObjectDownloader(
+                client,
+                ApiAuthenticationRequirement.Required);
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                "https://example.com/object.bundle");
+
+            Run(downloader.DownloadAsync(
+                ObjectSource.DirectUrl(request.Url),
+                request,
+                _ => { }));
+
+            Assert.NotNull(client.LastRequest);
+            Assert.AreEqual(
+                ApiAuthenticationRequirement.Required,
+                client.LastRequest.Authentication);
+            Assert.IsNull(client.LastRequest.BearerTokenOverride);
+        }
+
         private static void Run(IEnumerator enumerator)
         {
             while (enumerator.MoveNext())

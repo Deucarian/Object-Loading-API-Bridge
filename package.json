@@ -1,7 +1,7 @@
 {
   "name": "com.deucarian.object-loading.api-integration",
   "displayName": "Deucarian Object Loading API Integration",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "unity": "2021.3",
   "description": "Optional integration that lets Deucarian Object Loading use optimized API-backed UnityWebRequestAssetBundle transport.",
   "license": "MIT",
