@@ -17,7 +17,8 @@ namespace Deucarian.ObjectLoading.APIIntegration.Tests
 
             ApiRequest apiRequest = ApiObjectDownloadMapper.CreateApiRequest(
                 ObjectSource.DirectUrl("https://example.com/object.bundle?platform=webgl"),
-                request);
+                request,
+                ApiAuthenticationRequirement.Optional);
 
             Assert.AreEqual("https://example.com/object.bundle?platform=webgl", apiRequest.Endpoint);
             Assert.AreEqual(ApiAuthenticationRequirement.Required, apiRequest.Authentication);
@@ -25,6 +26,43 @@ namespace Deucarian.ObjectLoading.APIIntegration.Tests
             Assert.AreEqual("secret-token", apiRequest.BearerTokenOverride);
             Assert.AreEqual(42, apiRequest.TimeoutSeconds);
             Assert.AreEqual("abc", apiRequest.Headers["X-Trace"]);
+            Assert.False(apiRequest.Headers.ContainsKey("Authorization"));
+        }
+
+        [Test]
+        public void CreateApiRequest_LegacyOverloadLeavesTokenlessRequestDisabled()
+        {
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                "https://example.com/object.bundle");
+
+            ApiRequest apiRequest = ApiObjectDownloadMapper.CreateApiRequest(
+                ObjectSource.DirectUrl(request.Url),
+                request);
+
+            Assert.AreEqual(
+                ApiAuthenticationRequirement.Disabled,
+                apiRequest.Authentication);
+            Assert.IsNull(apiRequest.BearerTokenOverride);
+        }
+
+        [TestCase(ApiAuthenticationRequirement.UseConfigDefault)]
+        [TestCase(ApiAuthenticationRequirement.Required)]
+        [TestCase(ApiAuthenticationRequirement.Optional)]
+        public void CreateApiRequest_UsesProviderAuthenticationWithoutTokenOverride(
+            ApiAuthenticationRequirement providerAuthentication)
+        {
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                "https://example.com/object.bundle");
+
+            ApiRequest apiRequest = ApiObjectDownloadMapper.CreateApiRequest(
+                ObjectSource.DirectUrl(request.Url),
+                request,
+                providerAuthentication);
+
+            Assert.AreEqual(
+                providerAuthentication,
+                apiRequest.Authentication);
+            Assert.IsNull(apiRequest.BearerTokenOverride);
             Assert.False(apiRequest.Headers.ContainsKey("Authorization"));
         }
 
@@ -74,6 +112,25 @@ namespace Deucarian.ObjectLoading.APIIntegration.Tests
             Assert.AreEqual(7, apiRequest.AssetBundleOptions.CacheVersion);
             Assert.AreEqual(99, apiRequest.AssetBundleOptions.Crc);
             Assert.AreEqual("unity-cache-key-hash", ApiObjectDownloadMapper.DescribeCacheStatus(request));
+        }
+
+        [Test]
+        public void CreateAssetBundleApiRequest_UsesRequiredProviderAuthenticationWithoutTokenOverride()
+        {
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                "https://example.com/object.bundle");
+
+            ApiRequest apiRequest =
+                ApiObjectDownloadMapper.CreateAssetBundleApiRequest(
+                    ObjectSource.DirectUrl(request.Url),
+                    request,
+                    ApiAuthenticationRequirement.Required);
+
+            Assert.AreEqual(
+                ApiAuthenticationRequirement.Required,
+                apiRequest.Authentication);
+            Assert.IsNull(apiRequest.BearerTokenOverride);
+            Assert.False(apiRequest.Headers.ContainsKey("Authorization"));
         }
 
         [Test]
@@ -147,6 +204,22 @@ namespace Deucarian.ObjectLoading.APIIntegration.Tests
             Assert.False(json.Contains("api-key-secret"));
             Assert.True(json.Contains("[redacted]"));
             Assert.True(json.Contains("visible"));
+        }
+
+        [Test]
+        public void DebugSnapshot_RecordsProviderAuthenticationWithoutTokenMaterial()
+        {
+            ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+                "https://example.com/object.bundle");
+
+            string json = ApiObjectDownloadMapper.CreateDebugSnapshotJson(
+                ObjectSource.DirectUrl(request.Url),
+                request,
+                ApiAuthenticationRequirement.Required);
+
+            Assert.True(json.Contains("\"authentication\": \"Required\""));
+            Assert.True(json.Contains("\"bearer_token_override\": null"));
+            Assert.False(json.Contains("Authorization"));
         }
     }
 }
