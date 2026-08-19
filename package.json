@@ -21,6 +21,9 @@
     "type": "git",
     "url": "git+https://github.com/Deucarian/ObjectLoading-API-Integration.git"
   },
+  "documentationUrl": "https://github.com/Deucarian/ObjectLoading-API-Integration/blob/main/README.md",
+  "changelogUrl": "https://github.com/Deucarian/ObjectLoading-API-Integration/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/Deucarian/ObjectLoading-API-Integration/blob/main/LICENSE.md",
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.2",
     "com.deucarian.api": "1.2.0",
