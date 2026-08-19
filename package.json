@@ -1,14 +1,16 @@
 {
   "name": "com.deucarian.object-loading.api-integration",
   "displayName": "Deucarian Object Loading API Integration",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "unity": "2021.3",
-  "description": "Optional integration that lets Deucarian Object Loading use optimized API-backed UnityWebRequestAssetBundle transport.",
+  "description": "Optional integration for API-backed Object Loading with optimized AssetBundle transport and exact-origin authentication policy.",
   "keywords": [
     "assetbundle",
     "object-loading",
     "api",
-    "integration"
+    "integration",
+    "authentication",
+    "trusted-origin"
   ],
   "category": "Integration",
   "author": {
@@ -20,7 +22,7 @@
   },
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.2",
-    "com.deucarian.api": "1.1.4",
+    "com.deucarian.api": "1.2.0",
     "com.deucarian.object-loading": "1.2.2"
   },
   "samples": [

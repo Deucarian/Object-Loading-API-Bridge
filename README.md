@@ -2,7 +2,9 @@
 
 ## Overview
 
-`com.deucarian.object-loading.api-integration` is an optional UPM package that adapts API to Deucarian Object Loading.
+`com.deucarian.object-loading.api-integration` is an optional UPM package that
+adapts API to Deucarian Object Loading, including optimized AssetBundle
+transport and exact-origin authentication decisions.
 
 The core `com.deucarian.object-loading` package has no API dependency. Use this integration only when downloads should go through API request handling.
 
@@ -24,6 +26,8 @@ Do not use this package for Session lifecycle, backend object/version resolution
 - Keeps authentication explicit through `ObjectLoadRequest.BearerToken`,
   `Authorization: Bearer ...`, or provider-authentication overloads used with
   an explicitly composed API client.
+- Resolves required-authentication sources through one fail-closed trusted-origin
+  policy before a live provider token can be requested.
 
 ## What It Does Not Do
 
@@ -44,9 +48,9 @@ Install this integration after installing its dependencies:
 - `com.deucarian.object-loading`
 - `com.deucarian.api`
 
-The package depends on `com.deucarian.object-loading` `1.2.2`, `com.deucarian.api` `1.1.4`, and Unity's Newtonsoft Json package `3.2.2`.
+The package depends on `com.deucarian.object-loading` `1.2.2`, `com.deucarian.api` `1.2.0`, and Unity's Newtonsoft Json package `3.2.2`.
 
-Current package version: `0.2.7`.
+Current package version: `0.2.8`.
 
 `com.deucarian.object-loading` supplies the runtime loading pipeline this package adapts. `com.deucarian.api` supplies the request, response, authentication, AssetBundle transport, and progress models used by the integration.
 
@@ -97,13 +101,22 @@ ApiObjectDownloader downloader = new ApiObjectDownloader(apiClient);
 ```
 
 To let API resolve the current token from that client's `IApiAuthProvider` at
-send time, opt in explicitly:
+send time, first resolve the source through the shared trusted-origin policy:
 
 ```csharp
+var authenticationPolicy = new ApiObjectLoadingTrustedOriginPolicy(
+    apiBaseUrl,
+    new[] { "https://private-cdn.example.com" });
+ApiObjectLoadingAuthenticatedRequest authenticatedSource =
+    authenticationPolicy.ResolveRequiredRequest(modelUrl);
+
 ObjectLoadingPipeline authenticatedPipeline =
     ApiObjectLoadingPipelineFactory.Create(
         apiClient,
-        ApiAuthenticationRequirement.Required);
+        authenticatedSource.Authentication);
+
+ObjectLoadRequest request = ObjectLoadRequest.FromUrl(
+    authenticatedSource.ResolvedUrl);
 ```
 
 The same `providerAuthentication` overload is available on
@@ -125,10 +138,20 @@ current token when the request is sent. An explicit bearer token always makes
 the request `Required` and takes precedence over the provider-authentication
 argument.
 
-Provider authentication is destination-sensitive. Keep it disabled for
-untrusted or arbitrary absolute URLs. Applications must validate that a source
-is API-relative, same-origin, or explicitly allowlisted before enabling a
-provider token for that load.
+Provider authentication is destination-sensitive. Use
+`ApiObjectLoadingTrustedOriginPolicy` whenever a model load requires the live
+provider token. Relative endpoints are resolved to a canonical absolute URL
+against the configured API base. Absolute sources must match that base origin or
+one of the explicitly configured exact origins. Origin equality includes the
+scheme, IDN host, and effective port. User information, non-HTTP(S) URLs,
+network-path references, malformed values, and untrusted cross-origin sources
+are rejected; the policy never returns optional or disabled authentication as a
+fallback.
+
+Additional origins must contain only an exact origin, for example
+`https://private-cdn.example.com` or `https://private-cdn.example.com:8443`.
+Paths, queries, fragments, user information, wildcards, and host suffix matches
+are not accepted.
 
 `ApiObjectDownloadMapper.CreateDebugSnapshotJson(...)` redacts bearer tokens and sensitive headers.
 
@@ -138,8 +161,9 @@ Import the **API Downloader Sample** from Unity's Package Manager to see `ApiObj
 
 ## Tests
 
-Run the package's EditMode tests in Unity. Tests cover provider-authentication
-forwarding, legacy disabled defaults, explicit auth/header forwarding,
+Run the package's EditMode tests in Unity. Tests cover exact trusted-origin
+resolution and rejection, canonical relative URL resolution, required provider
+authentication, legacy disabled defaults, explicit auth/header forwarding,
 byte-result mapping, error mapping, and debug redaction.
 
 ## Validation
