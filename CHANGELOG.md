@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.9 - 2026-08-19
+
+- Initialized the exact-origin parser's output before its whitespace
+  short-circuit so all failure paths satisfy C# definite assignment.
+
 ## 0.2.8 - 2026-08-19
 
 - Added a vendor-neutral trusted-origin policy that resolves relative model
