@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.8 - 2026-08-19
+
+- Added a vendor-neutral trusted-origin policy that resolves relative model
+  endpoints against the configured API base and returns a canonical absolute
+  URL with required provider authentication.
+- Required-authentication loads now have a shared fail-closed path: invalid,
+  credential-bearing, unsupported, and untrusted cross-origin URLs are rejected
+  instead of being silently retried without authentication.
+- Matched origins by exact scheme, IDN host, and effective port, and required
+  every additional trusted entry to be an exact HTTP(S) origin.
+- Updated the exact API dependency to `1.2.0`.
+
 ## 0.2.7 - 2026-08-18
 
 - Added explicit API-provider authentication overloads for byte downloads,
