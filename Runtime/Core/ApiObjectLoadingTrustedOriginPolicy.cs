@@ -265,6 +265,7 @@ namespace Deucarian.ObjectLoading.APIIntegration
 
         private static bool TryGetExactOrigin(string value, out Uri uri)
         {
+            uri = null;
             if (string.IsNullOrWhiteSpace(value) ||
                 !TryGetAbsoluteHttpUri(value.Trim(), out uri))
             {
